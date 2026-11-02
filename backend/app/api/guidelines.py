@@ -120,10 +120,23 @@ def create_manual_guideline(
             detail="Please provide sufficient guideline content with clear sections or rules."
         )
 
+    # Validate parent reference if provided
+    if payload.parent_document_id:
+        parent = db.query(GuidelineDocument).filter(GuidelineDocument.id == payload.parent_document_id).first()
+        if not parent:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Specified parent policy document '{payload.parent_document_id}' does not exist."
+            )
+
     doc = GuidelineDocument(
         title=payload.title.strip(),
         filename="manual_entry.txt",
         extracted_text=payload.content,
+        policy_scope=payload.policy_scope or "corporate",
+        parent_document_id=payload.parent_document_id,
+        region_code=payload.region_code,
+        product_line=payload.product_line,
         is_demo=False
     )
     db.add(doc)
@@ -178,6 +191,43 @@ def get_guideline(document_id: str, db: Session = Depends(get_db)):
     item = GuidelineDocumentResponse.model_validate(doc)
     item.clause_count = len(doc.clauses)
     return item
+
+
+@router.get("/hierarchy")
+def get_guideline_hierarchy(db: Session = Depends(get_db)):
+    """
+    Returns the hierarchical policy graph showing Corporate -> Regional -> Product-line inheritance.
+    Includes parent-child relationships and cycle validation.
+    """
+    all_docs = db.query(GuidelineDocument).all()
+    doc_map = {d.id: d for d in all_docs}
+
+    roots = []
+    children_map = {}
+
+    for d in all_docs:
+        if d.parent_document_id and d.parent_document_id in doc_map:
+            children_map.setdefault(d.parent_document_id, []).append(d)
+        else:
+            roots.append(d)
+
+    def build_tree_node(doc):
+        kids = children_map.get(doc.id, [])
+        return {
+            "id": doc.id,
+            "title": doc.title,
+            "policy_scope": doc.policy_scope or "corporate",
+            "region_code": doc.region_code,
+            "product_line": doc.product_line,
+            "clause_count": len(doc.clauses),
+            "parent_document_id": doc.parent_document_id,
+            "children": [build_tree_node(k) for k in kids]
+        }
+
+    return {
+        "total_documents": len(all_docs),
+        "corporate_roots": [build_tree_node(r) for r in roots]
+    }
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

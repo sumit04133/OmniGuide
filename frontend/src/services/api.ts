@@ -10,7 +10,13 @@ import {
   CampaignAudit,
   CampaignTemplate,
   RedTeamTestCase,
-  RedTeamEvaluationResult
+  RedTeamEvaluationResult,
+  AssetAudit,
+  AssetAuditListItem,
+  FigmaAuditResult,
+  CMSWebhookResult,
+  RegulatoryRulePack,
+  PolicyHierarchyNode
 } from '../types';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
@@ -129,6 +135,8 @@ export const api = {
     content: string;
     campaign_context?: string;
     analysis_mode?: string;
+    guideline_document_id?: string;
+    policy_scope?: string;
   }): Promise<Review> {
     const res = await fetch(`${API_BASE}/reviews`, {
       method: 'POST',
@@ -307,5 +315,104 @@ export const api = {
   async getRedTeamReportJson(): Promise<Record<string, any>> {
     const res = await fetch(`${API_BASE}/redteam/report/json`);
     return handleResponse<Record<string, any>>(res);
+  },
+
+  // ==========================================
+  // ROUND 3: MULTIMODAL ASSET GOVERNANCE API
+  // ==========================================
+  async auditAsset(
+    file: File,
+    options?: { brand_name?: string; target_channel?: string; disclaimer_ratio_threshold?: number }
+  ): Promise<AssetAudit> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options?.brand_name) formData.append('brand_name', options.brand_name);
+    if (options?.target_channel) formData.append('target_channel', options.target_channel);
+    if (options?.disclaimer_ratio_threshold !== undefined) {
+      formData.append('disclaimer_ratio_threshold', options.disclaimer_ratio_threshold.toString());
+    }
+
+    const res = await fetch(`${API_BASE}/assets/audit`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<AssetAudit>(res);
+  },
+
+  async getAssetAudits(): Promise<AssetAuditListItem[]> {
+    const res = await fetch(`${API_BASE}/assets`);
+    return handleResponse<AssetAuditListItem[]>(res);
+  },
+
+  async getAssetAudit(id: string): Promise<AssetAudit> {
+    const res = await fetch(`${API_BASE}/assets/${id}`);
+    return handleResponse<AssetAudit>(res);
+  },
+
+  async getAssetReport(id: string): Promise<string> {
+    const res = await fetch(`${API_BASE}/assets/${id}/report`);
+    if (!res.ok) throw new Error('Failed to download asset audit report');
+    return res.text();
+  },
+
+  async deleteAssetAudit(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/assets/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse<void>(res);
+  },
+
+  // ==========================================
+  // ROUND 3: WORKFLOW INTEGRATIONS API
+  // ==========================================
+  async auditFigmaSelection(data: {
+    text: string;
+    node_name?: string;
+    component_type?: string;
+  }): Promise<FigmaAuditResult> {
+    const res = await fetch(`${API_BASE}/integrations/figma/audit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<FigmaAuditResult>(res);
+  },
+
+  async sendCMSWebhook(
+    payload: any,
+    secret?: string
+  ): Promise<CMSWebhookResult> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (secret) {
+      headers['X-OmniGuide-Webhook-Secret'] = secret;
+    }
+    const res = await fetch(`${API_BASE}/integrations/cms/webhook`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<CMSWebhookResult>(res);
+  },
+
+  // ==========================================
+  // ROUND 3: REGULATORY RULE PACKS & HIERARCHY
+  // ==========================================
+  async getRegulatoryPacks(): Promise<RegulatoryRulePack[]> {
+    const res = await fetch(`${API_BASE}/regulatory/packs`);
+    return handleResponse<RegulatoryRulePack[]>(res);
+  },
+
+  async toggleRegulatoryPack(packId: string, enabled: boolean): Promise<{ pack_id: string; is_enabled: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/regulatory/packs/${packId}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    return handleResponse<{ pack_id: string; is_enabled: boolean; message: string }>(res);
+  },
+
+  async getGuidelineHierarchy(): Promise<{ total_documents: number; corporate_roots: PolicyHierarchyNode[] }> {
+    const res = await fetch(`${API_BASE}/guidelines/hierarchy`);
+    return handleResponse<{ total_documents: number; corporate_roots: PolicyHierarchyNode[] }>(res);
   },
 };

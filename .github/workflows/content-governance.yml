@@ -1,0 +1,83 @@
+name: OmniGuide Content Governance Check
+
+on:
+  pull_request:
+    paths:
+      - 'content/**'
+      - 'copy/**'
+      - 'campaigns/**'
+      - 'marketing/**'
+      - '**/*.md'
+      - '**/*.copy.json'
+  workflow_dispatch:
+    inputs:
+      file_path:
+        description: 'Path to content file to audit'
+        required: true
+        default: 'content/sample_launch_copy.md'
+      launch_gate:
+        description: 'Launch Gate Policy (strict, standard, advisory)'
+        required: true
+        default: 'strict'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  governance-gate:
+    name: OmniGuide Brand & Legal Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install CI Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx
+
+      - name: Identify Changed Content Files
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "CHANGED_FILES=${{ github.event.inputs.file_path }}" >> $GITHUB_ENV
+          else
+            # Find changed supported marketing copy files
+            CHANGED=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }} ${{ github.sha }} | grep -E '\.(md|txt|json|yaml|yml)$' || true)
+            echo "CHANGED_FILES=$CHANGED" >> $GITHUB_ENV
+          fi
+
+      - name: Run OmniGuide Governance Gate
+        env:
+          OMNIGUIDE_API_URL: ${{ secrets.OMNIGUIDE_API_URL || 'https://omniguide-api.onrender.com/api' }}
+          OMNIGUIDE_API_KEY: ${{ secrets.OMNIGUIDE_API_KEY }}
+          GATE_POLICY: ${{ github.event.inputs.launch_gate || 'strict' }}
+        run: |
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No marketing content files modified in this pull request. Governance check skipped."
+            exit 0
+          fi
+
+          EXIT_CODE=0
+          for FILE in $CHANGED_FILES; do
+            if [ -f "$FILE" ]; then
+              echo "==> Auditing: $FILE"
+              python scripts/governance_ci.py \
+                --file "$FILE" \
+                --api-url "$OMNIGUIDE_API_URL" \
+                --launch-gate "$GATE_POLICY" \
+                --offline-fallback || EXIT_CODE=1
+            fi
+          done
+
+          exit $EXIT_CODE

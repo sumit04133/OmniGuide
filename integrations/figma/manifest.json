@@ -1,0 +1,14 @@
+{
+  "name": "OmniGuide — AI Brand Governance",
+  "id": "omniguide-figma-governance-plugin",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "http://localhost:8000",
+      "https://omniguide-api.onrender.com"
+    ]
+  }
+}

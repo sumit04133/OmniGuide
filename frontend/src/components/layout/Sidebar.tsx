@@ -10,7 +10,9 @@ import {
   ShieldAlert,
   Rocket,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  FileImage,
+  GitPullRequest
 } from 'lucide-react';
 import { SystemStatus } from '../../types';
 import { OmniGuideLogo } from '../common/OmniGuideLogo';
@@ -24,12 +26,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ status, onCloseMobile }) => {
   const coreNavItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
     { to: '/reviews/new', label: 'New Review', icon: FileCheck2 },
+    { to: '/assets', label: 'Creative Assets', icon: FileImage, badge: 'Vision AI' },
     { to: '/simulator', label: 'Campaign Simulator', icon: Rocket, badge: 'Flagship' },
     { to: '/guidelines', label: 'Brand Guidelines', icon: BookOpen },
     { to: '/reviews', label: 'Review History', icon: History },
   ];
 
   const securityNavItems = [
+    { to: '/integrations', label: 'CI/CD & Workflows', icon: GitPullRequest, badge: 'PR Gate' },
     { to: '/redteam', label: 'Red-Team Lab', icon: ShieldAlert, badge: 'v1.2' },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];

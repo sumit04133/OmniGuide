@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OmniGuide Brand Governance</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+      --teal: #0d9488;
+      --teal-light: #f0fdfa;
+      --red: #e11d48;
+      --red-light: #fff1f2;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+    }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 14px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge {
+      font-size: 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    .selection-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .text-preview {
+      font-family: monospace;
+      font-size: 11px;
+      max-height: 70px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #334155;
+    }
+    button {
+      background: #0f766e;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    button:hover { background: #115e59; }
+    button:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-apply {
+      background: #0284c7;
+      margin-top: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .btn-apply:hover { background: #0369a1; }
+    .status-card {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .finding-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .finding-item:last-child { border-bottom: none; }
+    .finding-sev-high { color: var(--red); font-weight: 700; }
+    .finding-sev-med { color: var(--amber); font-weight: 700; }
+    .citation-tag {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <span>OmniGuide</span>
+      <span class="badge">Prototype</span>
+    </div>
+    <span id="score-badge" style="font-weight:700;">Score: --</span>
+  </div>
+
+  <div class="selection-box">
+    <div class="label" id="layer-name">Selected Layer</div>
+    <div class="text-preview" id="selected-text">Select a text layer in Figma to begin audit...</div>
+  </div>
+
+  <button id="btn-audit" onclick="runAudit()" disabled>Audit Selected Copy</button>
+
+  <div id="results" style="display:none;" class="status-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-weight:700;" id="audit-status">Status</span>
+      <span id="findings-count" style="font-size:11px; color:#64748b;"></span>
+    </div>
+    <div id="findings-list"></div>
+    <div id="rewrite-section" style="margin-top:10px; display:none;">
+      <div class="label">Compliant Intent-Preserving Rewrite</div>
+      <div id="rewrite-text" style="font-size:12px; color:#0f766e; background:#f0fdfa; padding:6px; border-radius:4px; font-weight:500;"></div>
+      <button class="btn-apply" onclick="applyRewrite()">Apply Rewrite to Canvas Layer</button>
+    </div>
+  </div>
+
+  <script>
+    let currentSelection = null;
+    let currentRewrite = null;
+    const API_BASE = "http://localhost:8000/api";
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (msg.type === "SELECTION_CHANGED") {
+        const data = msg.data;
+        if (data.error) {
+          document.getElementById("selected-text").textContent = data.error;
+          document.getElementById("layer-name").textContent = "Selection Error";
+          document.getElementById("btn-audit").disabled = true;
+          currentSelection = null;
+        } else {
+          currentSelection = data;
+          document.getElementById("layer-name").textContent = "Layer: " + data.nodeName;
+          document.getElementById("selected-text").textContent = data.text;
+          document.getElementById("btn-audit").disabled = false;
+        }
+      }
+    };
+
+    async function runAudit() {
+      if (!currentSelection || !currentSelection.text) return;
+      const btn = document.getElementById("btn-audit");
+      btn.disabled = true;
+      btn.textContent = "Auditing via OmniGuide Engine...";
+
+      try {
+        const res = await fetch(`${API_BASE}/integrations/figma/audit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: currentSelection.text,
+            node_name: currentSelection.nodeName
+          })
+        });
+
+        if (!res.ok) throw new Error("Server error " + res.status);
+        const data = await res.json();
+        renderResults(data);
+      } catch (err) {
+        alert("OmniGuide API connection failed. Ensure backend server is running on localhost:8000.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Audit Selected Copy";
+      }
+    }
+
+    function renderResults(data) {
+      document.getElementById("results").style.display = "block";
+      document.getElementById("score-badge").textContent = `Score: ${data.compliance_score}/100`;
+      document.getElementById("audit-status").textContent = data.status.toUpperCase();
+      document.getElementById("findings-count").textContent = `${data.total_findings} finding(s)`;
+
+      const list = document.getElementById("findings-list");
+      list.innerHTML = "";
+
+      if (data.findings.length === 0) {
+        list.innerHTML = "<div style='color:#0f766e; padding:6px 0;'>All claims verified compliant with brand guidelines!</div>";
+      } else {
+        data.findings.forEach(f => {
+          const div = document.createElement("div");
+          div.className = "finding-item";
+          const sevClass = f.severity === "High" ? "finding-sev-high" : "finding-sev-med";
+          div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <span class="${sevClass}">[${f.severity}] ${f.category}</span>
+              ${f.guideline_clause_identifier ? `<span class="citation-tag">${f.guideline_clause_identifier}</span>` : ""}
+            </div>
+            <div style="color:#475569; font-size:11px;">"${f.original_excerpt}"</div>
+            <div style="color:#334155; margin-top:2px;">${f.explanation}</div>
+          `;
+          list.appendChild(div);
+        });
+      }
+
+      if (data.suggested_rewrites && data.suggested_rewrites.length > 0) {
+        currentRewrite = data.suggested_rewrites[0];
+        document.getElementById("rewrite-section").style.display = "block";
+        document.getElementById("rewrite-text").textContent = currentRewrite;
+      } else {
+        document.getElementById("rewrite-section").style.display = "none";
+      }
+    }
+
+    function applyRewrite() {
+      if (!currentRewrite || !currentSelection) return;
+      parent.postMessage({
+        pluginMessage: {
+          type: "APPLY_REWRITE",
+          replacementText: currentRewrite,
+          textNodeIds: currentSelection.textNodeIds
+        }
+      }, "*");
+    }
+  </script>
+</body>
+</html>

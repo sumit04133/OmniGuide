@@ -54,11 +54,13 @@ def start_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         approved_facts=approved_facts_list
     )
 
-    # Stage B: Guideline retrieval
+    # Stage B: Guideline retrieval (with hierarchical inheritance support)
     retrieved_clauses = guideline_retriever.retrieve_relevant_clauses(
         db=db,
         query_text=clean_content,
-        top_k=5
+        top_k=5,
+        document_id=payload.guideline_document_id,
+        scope=payload.policy_scope
     )
 
     # Stage C: AI Analysis or Deterministic Fallback

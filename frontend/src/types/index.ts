@@ -285,3 +285,135 @@ export interface RedTeamEvaluationResult {
   case_results: RedTeamCaseResult[];
   evaluation_verdict: string;
 }
+
+// ==========================================
+// ROUND 3: MULTIMODAL ASSET GOVERNANCE TYPES
+// ==========================================
+
+export interface AssetFinding {
+  id: string;
+  category: string;
+  severity: Severity;
+  extracted_text: string;
+  explanation: string;
+  suggested_fix: string;
+  guideline_clause_identifier?: string | null;
+  guideline_clause_text?: string | null;
+  guideline_document_name?: string | null;
+  guideline_page_number?: number | null;
+  evidence_tier: 'VERIFIED' | 'UNSUPPORTED' | 'CONTRADICTED' | 'NEEDS_HUMAN_REVIEW';
+  evidence_status: string;
+  evidence_provenance?: Record<string, any> | null;
+  box_ymin?: number | null;
+  box_xmin?: number | null;
+  box_ymax?: number | null;
+  box_xmax?: number | null;
+}
+
+export interface AssetAudit {
+  id: string;
+  filename: string;
+  mime_type: string;
+  file_size_bytes: number;
+  image_width: number;
+  image_height: number;
+  brand_name: string;
+  target_channel: string;
+  headline_text?: string | null;
+  supporting_text?: string | null;
+  disclaimer_text?: string | null;
+  disclaimer_ratio?: number | null;
+  disclaimer_status: 'compliant' | 'warning' | 'violation' | 'not_detected';
+  disclaimer_threshold: number;
+  overall_status: 'compliant' | 'needs_review' | 'flagged';
+  analysis_mode: string;
+  image_data_url?: string | null;
+  created_at: string;
+  findings: AssetFinding[];
+}
+
+export interface AssetAuditListItem {
+  id: string;
+  filename: string;
+  mime_type: string;
+  image_width: number;
+  image_height: number;
+  brand_name: string;
+  overall_status: 'compliant' | 'needs_review' | 'flagged';
+  analysis_mode: string;
+  findings_count: number;
+  high_severity_count: number;
+  disclaimer_status: string;
+  created_at: string;
+}
+
+// ==========================================
+// ROUND 3: WORKFLOW INTEGRATIONS TYPES
+// ==========================================
+
+export interface FigmaFindingItem {
+  category: string;
+  severity: Severity;
+  original_excerpt: string;
+  explanation: string;
+  suggested_fix: string;
+  guideline_clause_identifier?: string | null;
+  evidence_tier: string;
+}
+
+export interface FigmaAuditResult {
+  status: 'compliant' | 'needs_review' | 'flagged';
+  node_name: string;
+  total_findings: number;
+  findings: FigmaFindingItem[];
+  suggested_rewrites: string[];
+  compliance_score: number;
+  checked_at: string;
+}
+
+export interface CMSWebhookResult {
+  event_id: string;
+  provider: string;
+  status: 'processed' | 'duplicate_skipped' | 'flagged' | 'compliant';
+  audit_decision: 'approved' | 'blocked' | 'warning';
+  blocking_violations_count: number;
+  findings_count: number;
+  message: string;
+}
+
+// ==========================================
+// ROUND 3: REGULATORY RULE PACKS & HIERARCHY
+// ==========================================
+
+export interface RegulatoryRuleClause {
+  clause_identifier: string;
+  clause_text: string;
+  section_heading: string;
+  regulatory_source: string;
+  mandatory_tier: string;
+}
+
+export interface RegulatoryRulePack {
+  id: string;
+  name: string;
+  jurisdiction: string;
+  authority: string;
+  description: string;
+  version: string;
+  is_enabled: boolean;
+  is_illustrative: boolean;
+  statutory_reference: string;
+  clauses: RegulatoryRuleClause[];
+}
+
+export interface PolicyHierarchyNode {
+  id: string;
+  title: string;
+  policy_scope: 'corporate' | 'regional' | 'product_line';
+  region_code?: string | null;
+  product_line?: string | null;
+  clause_count: number;
+  parent_document_id?: string | null;
+  children: PolicyHierarchyNode[];
+}
+

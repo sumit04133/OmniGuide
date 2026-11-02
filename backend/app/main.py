@@ -12,6 +12,9 @@ from app.api.reviews import router as reviews_router
 from app.api.demo import router as demo_router
 from app.api.campaigns import router as campaigns_router
 from app.api.redteam import router as redteam_router
+from app.api.assets import router as assets_router
+from app.api.integrations import router as integrations_router
+from app.api.regulatory import router as regulatory_router
 
 # Configure logging
 logging.basicConfig(
@@ -71,6 +74,9 @@ app.include_router(facts_router, prefix=settings.API_V1_PREFIX)
 app.include_router(reviews_router, prefix=settings.API_V1_PREFIX)
 app.include_router(campaigns_router, prefix=settings.API_V1_PREFIX)
 app.include_router(redteam_router, prefix=settings.API_V1_PREFIX)
+app.include_router(assets_router, prefix=settings.API_V1_PREFIX)
+app.include_router(integrations_router, prefix=settings.API_V1_PREFIX)
+app.include_router(regulatory_router, prefix=settings.API_V1_PREFIX)
 app.include_router(demo_router, prefix=settings.API_V1_PREFIX)
 
 

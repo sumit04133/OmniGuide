@@ -9,6 +9,8 @@ import { ReviewHistoryPage } from './pages/ReviewHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CampaignSimulatorPage } from './pages/CampaignSimulatorPage';
 import { RedTeamPage } from './pages/RedTeamPage';
+import { AssetAuditPage } from './pages/AssetAuditPage';
+import { IntegrationsPage } from './pages/IntegrationsPage';
 
 export const App: React.FC = () => {
   return (
@@ -17,6 +19,8 @@ export const App: React.FC = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="simulator" element={<CampaignSimulatorPage />} />
+          <Route path="assets" element={<AssetAuditPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="redteam" element={<RedTeamPage />} />
           <Route path="guidelines" element={<GuidelinesPage />} />
           <Route path="reviews/new" element={<NewReviewPage />} />

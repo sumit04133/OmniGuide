@@ -27,12 +27,20 @@ class GuidelineDocumentBase(BaseModel):
 class GuidelineManualCreate(GuidelineDocumentBase):
     content: str = Field(..., min_length=10, description="Pasted guideline text content")
     approved_facts: Optional[List[str]] = Field(default_factory=list, description="Optional initial approved facts")
+    policy_scope: Optional[str] = Field("corporate", description="'corporate', 'regional', or 'product_line'")
+    parent_document_id: Optional[str] = Field(None, description="Optional parent policy document UUID for inheritance")
+    region_code: Optional[str] = Field(None, description="e.g. GLOBAL, IN, US, EU")
+    product_line: Optional[str] = Field(None, description="e.g. Enterprise Cloud, Retail App")
 
 
 class GuidelineDocumentResponse(GuidelineDocumentBase):
     id: str
     filename: str
     is_demo: bool
+    policy_scope: Optional[str] = "corporate"
+    parent_document_id: Optional[str] = None
+    region_code: Optional[str] = None
+    product_line: Optional[str] = None
     created_at: datetime
     clause_count: Optional[int] = 0
     clauses: Optional[List[GuidelineClauseResponse]] = []

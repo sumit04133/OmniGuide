@@ -4,101 +4,103 @@
 **Primary Tagline:** "Governance, Guided by Intelligence."  
 **Supporting Message:** "Every claim checked. Every decision explained."  
 
+
 ---
 
 ## 1. Product Vision
 
-OmniGuide helps organisations audit and govern marketing content before publication. It reviews submitted draft copy against uploaded brand guidelines, identifies potential violations, explains **why** each issue matters, cites exact supporting guideline clauses with source document names and page numbers, and suggests intent-preserving corrections.
+OmniGuide helps organisations audit and govern marketing content across both visual and text channels before publication. It reviews submitted marketing copy and creative banners against uploaded brand guidelines, identifies potential violations, explains **why** each issue matters, cites exact supporting guideline clauses with source document names and page numbers, and suggests intent-preserving corrections.
 
 ### Core Philosophy: Human-in-the-Loop Governance
-- **AI assists, humans decide:** OmniGuide never silently publishes content or modifies copy without human approval.
+- **AI assists, humans decide:** OmniGuide never silently publishes content or modifies creative copy without human approval.
 - **Evidence-backed, no hallucinations:** Every guideline citation is validated against stored database records. If an external AI proposes an ungrounded or invented clause ID, OmniGuide flags it as unverified rather than presenting it as fact.
-- **Distinguishing unverified from false:** Claims lacking registered approved sources are clearly labelled as `missing_approved_source`, never mischaracterised as verified false.
-- **Resilient fallback:** Operates in Hybrid AI mode (Gemini Flash + Deterministic rules) or pure Deterministic mode when offline or without an API key.
+- **Distinguishing unverified from false:** Claims lacking registered approved sources are clearly labelled as `UNSUPPORTED`, never mischaracterised as verified false.
+- **Multimodal Visual Rigor:** Visual creative banners, display ads, and promotional graphics are audited with the same strictness as text copy—complete with disclaimer visibility heuristics and bounding-box overlays.
+- **Resilient fallback:** Operates in Hybrid AI mode (Gemini Flash/Vision + Dense-Sparse RRF + Deterministic rules) or pure Deterministic mode when offline or without an API key.
 
 ---
 
 ## 2. Architecture & Technology Stack
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   OmniGuide Frontend                   │
-│   React 19 + TypeScript + Vite + Tailwind CSS + Lucide │
-└──────────────────────────┬─────────────────────────────┘
-                           │ HTTP / JSON REST API
-┌──────────────────────────▼─────────────────────────────┐
-│                   FastAPI Backend                      │
-│                                                        │
-│  ┌────────────────────┐      ┌──────────────────────┐  │
-│  │ Deterministic Rules│      │  Guideline Retriever │  │
-│  │ (Regex, Banned, %) │      │  (BM25 Lexical / PGs)│  │
-│  └─────────┬──────────┘      └───────────┬──────────┘  │
-│            │                             │             │
-│            ▼                             ▼             │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │   Gemini Flash Analysis (Google GenAI Python SDK) │  │
-│  │   Structured Pydantic JSON Output Schema         │  │
-│  └──────────────────────────┬───────────────────────┘  │
-│                             │                          │
-│                             ▼                          │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │   Evidence Validator & Anti-Hallucination Engine │  │
-│  └──────────────────────────┬───────────────────────┘  │
-└─────────────────────────────┼──────────────────────────┘
-                              │ SQLAlchemy 2.x ORM
-┌─────────────────────────────▼──────────────────────────┐
-│              PostgreSQL Database (Neon)                │
-│    Guidelines • Clauses • Approved Facts • Reviews     │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                          OmniGuide Frontend                            │
+│     React 19 + TypeScript + Vite + Tailwind CSS + Lucide Icons         │
+│  ┌───────────────────────┐ ┌──────────────────────┐ ┌───────────────┐  │
+│  │ Text Copy Workbench   │ │ Multimodal Asset Canvas│ │ Integrations │  │
+│  │ (Side-by-Side Review) │ │ (Bounding Box Overlays)│ │ (CI/Figma/CMS)│  │
+│  └───────────────────────┘ └──────────────────────┘ └───────────────┘  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTP / JSON REST API
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                          FastAPI Backend                               │
+│                                                                        │
+│  ┌─────────────────────┐   ┌────────────────────────────────────────┐  │
+│  │ Deterministic Rules │   │ Hybrid Dense-Sparse Policy Retriever   │  │
+│  │ (Regex, Banned, %)  │   │ • BM25 Lexical Token Weighting         │  │
+│  └──────────┬──────────┘   │ • Dense Vector Embeddings (Gemini)     │  │
+│             │              │ • Reciprocal Rank Fusion (RRF k=60)    │  │
+│             │              │ • Hierarchical Policy Graph (Corp->Reg)│  │
+│             │              │ • Regulatory Rule Packs (FTC/ASCI/DSA) │  │
+│             │              └───────────────────┬────────────────────┘  │
+│             ▼                                  ▼                       │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │   Gemini Intelligence Engine (Google GenAI Python SDK)           │  │
+│  │   • Gemini Flash (Marketing Copy Audit & Rewrites)               │  │
+│  │   • Gemini Vision (Multimodal Asset Claims & Disclaimers)        │  │
+│  │   • Structured Pydantic JSON Output Schema                       │  │
+│  └──────────────────────────────────┬───────────────────────────────┘  │
+│                                     │                                  │
+│                                     ▼                                  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │   Evidence Validator & Anti-Hallucination Grounding Engine        │  │
+│  │   [VERIFIED | UNSUPPORTED | CONTRADICTED | NEEDS_HUMAN_REVIEW]   │  │
+│  └──────────────────────────────────┬───────────────────────────────┘  │
+└─────────────────────────────────────┼──────────────────────────────────┘
+                                      │ SQLAlchemy 2.x ORM
+┌─────────────────────────────────────▼──────────────────────────────────┐
+│                     PostgreSQL Database (Neon)                         │
+│  Guidelines • Clauses • Approved Facts • Reviews • Asset Audits        │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Frontend:** React, Vite, TypeScript, Tailwind CSS, Lucide React, React Router.
+- **Frontend:** React 19, Vite, TypeScript, Tailwind CSS, Lucide React, React Router 7.
 - **Backend:** Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2.x, Psycopg 3.
-- **AI Engine:** Google Gemini Flash (`gemini-2.5-flash`) via official Google GenAI Python SDK (`google-genai`).
-- **Document Processing:** PyMuPDF (`pymupdf`) for page-by-page text and clause extraction.
-- **Deterministic Rule Engine:** Python regular expressions, banned term detection, superlative pattern matching, approved-facts metric grounding.
+- **Multimodal AI Engine:** Google Gemini Flash (`gemini-2.5-flash`) for text analysis and Gemini Vision for creative asset auditing via the official Google GenAI Python SDK (`google-genai`).
+- **Dense-Sparse Hybrid Retrieval:** BM25 lexical token-weighted retrieval combined with dense embeddings via Reciprocal Rank Fusion (RRF).
+- **Document Processing:** PyMuPDF (`pymupdf`) for page-by-page text extraction and clause parsing.
+- **Deterministic Rule Engine:** Regular expressions, banned term detection, superlative pattern matching, and Approved Facts metric grounding.
 - **Database:** PostgreSQL on Neon (with automatic SQLite fallback for local developer testing).
 
 ---
 
-## 3. Core Workflow
+## 3. The Three Round 3 Major Improvements
 
-1. **Step 1 — Add Guidelines & Approved Facts:**
-   - Upload text-based PDF guidelines (parsed page-by-page via PyMuPDF).
-   - Or paste guidelines manually.
-   - Intelligent clause splitter assigns stable identifiers (`SEC-1.1`, `RULE-02`) and preserves page numbers.
-   - Detects scanned/image-only PDFs and provides a clear notice that OCR is not supported.
-   - Register corporate Approved Facts (e.g., benchmark latency, uptime SLA, customer counts).
+### Improvement 1: Multimodal Creative Asset Governance
+- **Supported Formats:** Validates PNG, JPEG, and WebP assets with binary magic byte validation and size checks.
+- **Visual Content Extraction:** Extracts visible headlines, supporting copy, fine-print disclaimers, and claims.
+- **Approved Facts Grounding:** Every visual claim is verified against stored guideline clauses and registered corporate facts, classified into the 4 evidence tiers.
+- **Disclaimer Visibility Heuristic:** Calculates the relative height ratio:
+  $$\text{Ratio} = \frac{\text{Height}_{\text{disclaimer}}}{\text{Height}_{\text{headline}}}$$
+  Flags disclaimers smaller than 20% of headline height (configurable heuristic: 10% permissive to 40% strict) to prevent hidden fine print.
+- **Visual Overlays:** Interactive SVG/canvas bounding-box overlays color-coded by severity (Rose=High, Amber=Medium, Sky=Low) with hover inspection.
+- **Endpoint:** `POST /api/assets/audit`
 
-2. **Step 2 — Submit Marketing Content:**
-   - Review title, content type, marketing draft copy, optional campaign context.
-   - Choice between Hybrid Mode (Gemini Flash + Deterministic rules) and Deterministic Mode.
-   - Pre-loaded benchmark governance evaluation scenarios with one-click buttons.
+### Improvement 2: Governance in Development & Content Workflows
+- **GitHub Actions CI/CD:** Real reusable GitHub Actions workflow (`.github/workflows/content-governance.yml`) and CLI script (`scripts/governance_ci.py`). Evaluates PR copy files, enforces Strict Launch Gates, blocks merges on violations (Exit 1), and generates concise Markdown reports in `$GITHUB_STEP_SUMMARY`.
+- **Figma Selected-Text Integration:** Real-time API endpoint (`POST /api/integrations/figma/audit`) returning compliance scores, grounded clause citations, and intent-preserving rewrites. Includes local prototype Figma plugin (`integrations/figma/manifest.json`, `code.js`, `ui.html`).
+- **Headless CMS Webhooks:** Secure webhook receiver (`POST /api/integrations/cms/webhook`) supporting Contentful and Strapi publish events. Features HMAC/secret verification, idempotency protection against duplicate delivery, and automated governance reviews before publication.
 
-3. **Step 3 — 5-Stage Hybrid Governance Pipeline:**
-   - **Stage A:** Deterministic regex scans for absolute superlatives, banned words, and metric claims.
-   - **Stage B:** Lexical BM25 retrieval pulls relevant clauses with document names and page numbers.
-   - **Stage C:** Gemini Flash analyzes copy, explains violations, and proposes intent-preserving rewrites.
-   - **Stage D:** Evidence validation verifies cited clause IDs against stored records.
-   - **Stage E:** Synthesizes clean revised draft and creates audit log.
-
-4. **Step 4 — Display Findings & Citations:**
-   - Severity badges (High, Medium, Low).
-   - Category tags (`unsupported_superlative`, `banned_term`, `missing_approved_source`).
-   - Exact highlighted excerpt from submitted copy.
-   - Explanation of why this violates brand and legal standards.
-   - Exact guideline clause citation, supporting quote, source document, and page number.
-   - Evidence integrity badge (`Ground Truth Cited`, `Missing Approved Fact`, `Deterministic Rule`).
-
-5. **Step 5 — Human Decisions & Interactive Editor:**
-   - **Accept Suggestion:** Applies replacement to revised copy.
-   - **Custom Edit:** Opens modal for bespoke marketer rewrite.
-   - **Dismiss:** Marks finding as dismissed with reason.
-   - **Side-by-Side Comparison:** Immutable original vs. live interactive revised editor.
-   - **Audit Trail:** Chronological log of every action taken on the review.
-
-6. **Step 6 — Review History & Auditability:**
-   - Full search, filter, inspect, and delete capabilities persisted in PostgreSQL.
+### Improvement 3: Hybrid Dense-Sparse Policy Retrieval & Policy Hierarchy
+- **Hybrid Retrieval (BM25 + Dense Embeddings):** Combines lexical keyword precision with dense semantic vector representations via Reciprocal Rank Fusion ($k=60$). Gracefully falls back to BM25 if the vector provider is offline or unconfigured.
+- **Hierarchical Policy Inheritance:** Models parent-child relationships across policies:
+  $$\text{Corporate Policy} \longrightarrow \text{Regional Policy} \longrightarrow \text{Product-Line Policy}$$
+  Child scope audits automatically inherit mandatory corporate policies with graph cycle detection and source attribution.
+- **Regulatory Rule Packs:** Built-in modular regulatory packs for:
+  1. **US FTC** (15 U.S.C. § 45 & 16 CFR Part 255 - Deceptive Acts & Disclosures)
+  2. **Indian ASCI** (ASCI Code Ch. I/IV & 2021 Influencer Advertising Guidelines)
+  3. **EU DSA** (Regulation (EU) 2022/2065 Art. 25 & Directive 2005/29/EC)
+  With real-time enable/disable toggles affecting governance retrieval.
 
 ---
 
@@ -108,28 +110,25 @@ OmniGuide helps organisations audit and govern marketing content before publicat
 - Python 3.11+
 - Node.js 18+ and npm
 
-### 1. Clone & Set Up Backend
+### 1. Set Up Backend
 ```bash
 git clone https://github.com/syntaxcommandant/OmniGuide.git
 cd OmniGuide
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
-
-# Activate virtual environment
 # Windows PowerShell:
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 # macOS/Linux:
 source .venv/bin/activate
 
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Create .env from template
+# Configure environment
 cp .env.example .env
 ```
-
-Set your `GEMINI_API_KEY` in `.env` (optional; deterministic mode operates if omitted).
+*(Optional: add `GEMINI_API_KEY` to `.env`. Deterministic mode runs automatically if omitted).*
 
 ### 2. Run Backend Server
 ```bash
@@ -139,9 +138,8 @@ $env:PYTHONPATH="backend"; uvicorn app.main:app --reload --port 8000
 # macOS / Linux:
 PYTHONPATH=backend uvicorn app.main:app --reload --port 8000
 ```
-- API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Interactive Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Health Check: [http://localhost:8000/api/health](http://localhost:8000/api/health)
-- System Status: [http://localhost:8000/api/status](http://localhost:8000/api/status)
 
 ### 3. Run Frontend
 In a new terminal:
@@ -154,134 +152,115 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 5. Automated Tests
+## 5. Automated Test Suite (82 / 82 Passing)
 
-The repository includes a comprehensive Pytest test suite covering all core requirements:
+The repository features comprehensive automated unit and integration tests covering all requirements:
 
 ```bash
-# Run pytest from root
+# Run pytest from root directory
 pytest -v
 ```
 
-### Test Results Summary
-- `test_health_check` — Verified API health endpoint response.
-- `test_system_status` — Verified DB connection, guideline counts, and status output.
-- `test_canonical_superlative_review_workflow` — End-to-end test with `"India's #1 fastest tool for Indian teams."`
-- `test_manual_guideline_creation` — Verified text parsing and clause persistence.
-- `test_invalid_pdf_handling` — Verified rejection of non-PDF or empty files.
-- `test_split_numbered_sections` — Tested section regex extraction (`SEC-1.1`, `SEC-1.2`).
-- `test_split_bullet_points` — Tested bullet item clause extraction with stable IDs.
-- `test_valid_clause_citation_verified` — Verified real guideline clause citation matching.
-- `test_hallucinated_clause_flagged` — Verified hallucinated IDs flagged as `insufficient_evidence`.
-- `test_detect_unsupported_superlative_number_one` — Tested `#1` and `fastest` pattern matching.
-- `test_detect_banned_terms` — Tested detection of `cheap` and `silver bullet`.
-- `test_approved_facts_matching` — Verified approved `42ms` vs unverified `99.9%` metric check.
+### Verified Test Results Summary
+- **Baseline Foundation (48/48 passed):**
+  - Canonical superlative review workflow (`#1 fastest`).
+  - PyMuPDF PDF clause extraction and scanned PDF rejection.
+  - Deterministic regex governance and Approved Facts quantitative grounding (`42ms`).
+  - Evidence validator tier classification (`VERIFIED`, `UNSUPPORTED`, `CONTRADICTED`, `NEEDS_HUMAN_REVIEW`).
+  - Campaign Launch Simulator, cross-channel contradiction detection, and score recovery.
+  - Red-Team adversarial simulator with 15 benchmark test vectors.
+- **Improvement 1: Asset Governance (12/12 passed):**
+  - PNG, JPEG, and WebP valid uploads.
+  - Unsupported file type, malformed image, and oversized file rejection.
+  - AI timeout and offline fallback to deterministic scan.
+  - Disclaimer-size heuristic violation (<20%) vs compliant ratio (30%).
+  - Grounded claims vs hallucinated clause sanitization.
+  - Inverted/missing bounding boxes handled gracefully.
+  - Idempotent repeat submissions and Markdown report exports.
+- **Improvement 2: Workflow Integrations (11/11 passed):**
+  - Figma selected-text audit with superlatives and compliant copy.
+  - Contentful publication payload governance evaluation.
+  - Strapi entry publish webhook processing.
+  - Webhook secret/HMAC signature rejection on invalid credentials.
+  - Duplicate webhook delivery skipped via idempotency cache.
+  - GitHub Actions CI runner (`governance_ci.py`) blocking failing PR (Exit 1) and approving compliant PR (Exit 0).
+  - Secrets masking in CI console output.
+- **Improvement 3: Hybrid Retrieval & Hierarchy (11/11 passed):**
+  - Cosine similarity vector math.
+  - BM25 exact keyword match and dense semantic match with RRF ranking.
+  - Missing embeddings fallback to BM25.
+  - Valid parent-child policy inheritance (Child inherits Corporate guardrails).
+  - Circular policy hierarchy rejection (cycle detection).
+  - Non-existent parent document rejection (HTTP 400).
+  - Regulatory rule packs listing (FTC, ASCI, EU DSA) and enable/disable toggles.
 
 ---
 
-## 6. Judge Demo Scenario Checklist
+Use this step-by-step checklist to evaluate all new Round 3 capabilities:
 
-Use this step-by-step checklist to test the product during evaluation:
+### Journey 1: Multimodal Creative Asset Governance
+1. Navigate to **Creative Assets** (`/assets`) in the sidebar.
+2. Under **Pre-Loaded Benchmark Creative Demo Scenarios**, click:
+   - **#1 Fastest Banner**: Generates an ad banner with a prominent `#1 Fastest` headline and tiny fine-print disclaimer.
+3. Click **Audit Creative Asset**:
+   - High-severity finding: `#1 Fastest` flagged under `SEC-1.1`.
+   - Disclaimer visibility violation: Disclaimer height is flagged as only 12.8% of headline height (violating the 20% minimum heuristic).
+   - Interactive Canvas: Hover over the bounding boxes on the image to highlight findings in the panel!
+4. Click **Download Report (.md)**: Inspect the generated executive Markdown report.
 
-### Scenario 1: The Canonical Test Case (Unsupported Superlatives)
-1. Navigate to **New Review** in the sidebar (or click **Run Demo: "#1 Fastest" Case** in the header).
-2. Click the pre-load button: **Canonical Superlative (#1 Fastest)**.
-   - Text loaded: `"India's #1 fastest tool for Indian teams."`
-3. Click **Run Brand Compliance Review**.
-4. **Expected Results:**
-   - Two high-severity findings detected:
-     1. Excerpt: `"#1"` — Cites `SEC-1.1` (Page 1) prohibiting unsupported ranking superlatives.
-     2. Excerpt: `"fastest"` — Cites `SEC-1.2` (Page 1) requiring benchmark data for absolute speed claims.
-   - Actionable intent-preserving replacement suggested.
-   - Click **Accept Suggestion** on finding 1: watch the Revised Compliant Copy update live!
-   - Click **Custom Edit** on finding 2: enter `"high-performance"` and click apply.
-   - Review overall status updates to **Resolved**.
-   - Review is saved to PostgreSQL and appears in **Review History**.
+### Journey 2: Development & Workflow Integrations
+1. Navigate to **CI/CD & Workflows** (`/integrations`) in the sidebar.
+2. **GitHub Actions Tab**:
+   - Select **Violating Copy PR** → Click **Run Pull Request Governance Check**.
+   - Watch the Strict Launch Gate block the PR with **Exit Code 1**, displaying violations table.
+   - Switch to **Compliant Copy PR** → Watch the gate approve with **Exit Code 0**!
+3. **Figma Plugin Tab**:
+   - Inspect the selected layer copy → Click **Audit Figma Selection**.
+   - See compliance score, grounded citations, and click **Apply Rewrite to Layer**.
+4. **Headless CMS Webhooks Tab**:
+   - Click **Send Webhook Event** → Inspect the real-time audit decision (`blocked` or `approved`).
+   - Click **Test Duplicate (Idempotency)** → Notice instant duplicate detection and skipping.
 
-### Scenario 2: Compliant Copy with Approved Fact
-1. Go to **New Review** and select **Compliant Enterprise Launch Copy**.
-   - Text: `"A high-performance governance platform built for teams across India, delivering 42ms benchmark latency for enterprise workflows."`
-2. Run Review:
-   - Evaluated as **Compliant**.
-   - The quantitative claim `42ms` is validated against the registered TechAudit Labs report in Approved Facts.
-
-### Scenario 3: Unverifiable Claim & Guarantee
-1. Go to **New Review** and select **Unverifiable Metric & Guarantee**.
-   - Text: `"Used by 98% of all Fortune 500 CEOs daily to eliminate 100% of their operational errors."`
-2. Run Review:
-   - Flagged with `missing_approved_source` for `98%` (citing `SEC-2.2`).
-   - Flagged with `unsupported_superlative` for `eliminate 100%` (citing `SEC-2.1`).
-
-### Scenario 4: Uploading PDF Guidelines
-1. Click **Download Sample Test PDF** on the Dashboard or Guidelines page.
-2. Go to **Guidelines & Facts** → **Upload PDF Guidelines**.
-3. Enter title: `"NovaForge Field Standard"` and select the downloaded `novaforge_governance_v2.4.pdf`.
-4. Click **Upload & Extract Clauses**:
-   - PyMuPDF extracts clauses page-by-page.
-   - View extracted clauses in the table with exact page references.
+### Journey 3: Policy Hierarchy & Regulatory Rule Packs
+1. Navigate to **Brand Guidelines** (`/guidelines`) in the sidebar.
+2. Click **Policy Hierarchy Graph**:
+   - View the mapped Corporate Root policies and child regional/product scopes.
+3. Click **Regulatory Rule Packs**:
+   - Inspect the US FTC, Indian ASCI, and EU DSA rule packs.
+   - Toggle **Active / Disabled** switches and see the active retrieval corpus update dynamically.
 
 ---
 
-## 7. Production Deployment Instructions
-
-### Database (Neon PostgreSQL)
-1. Create a free PostgreSQL instance on [Neon](https://neon.tech).
-2. Copy the connection string.
-3. Replace `postgres://` with `postgresql+psycopg://` if needed (the app auto-handles this prefix).
-
-### Backend (Render)
-1. Connect this GitHub repository to [Render](https://render.com).
-2. Create a new **Web Service** using `render.yaml` or manual configuration:
-   - **Environment:** Python 3
-   - **Build Command:** `pip install -r backend/requirements.txt`
-   - **Start Command:** `PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-3. Add Environment Variables:
-   - `DATABASE_URL`: Your Neon PostgreSQL connection string.
-   - `GEMINI_API_KEY`: Your Google Gemini Flash API key.
-   - `GEMINI_MODEL`: `gemini-2.5-flash`
-   - `CORS_ORIGINS`: `https://your-frontend.vercel.app,*`
-
-### Frontend (Vercel)
-1. Import repository to [Vercel](https://vercel.com).
-2. Set Root Directory to `frontend`.
-3. Set Framework to `Vite`.
-4. Add Environment Variable:
-   - `VITE_API_BASE_URL`: `https://your-render-app.onrender.com/api`
-5. Deploy.
-
----
-
-## 8. Environment Variables Reference
+## 7. Environment Variables Reference
 
 | Variable | Scope | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | Backend | `sqlite:///./omniguide.db` | PostgreSQL connection string (Neon/Render). |
-| `GEMINI_API_KEY` | Backend | `""` | Google Gemini API key. Enables AI analysis. |
-| `GEMINI_MODEL` | Backend | `gemini-2.5-flash` | Gemini model name. |
+| `GEMINI_API_KEY` | Backend | `""` | Google Gemini API key. Enables Flash & Vision AI. |
+| `GEMINI_MODEL` | Backend | `gemini-2.5-flash` | Gemini model name for text and vision. |
+| `OMNIGUIDE_WEBHOOK_SECRET` | Backend | `""` | Secret token for validating CMS webhooks. |
+| `OMNIGUIDE_API_URL` | CI/CD | `http://localhost:8000/api` | API backend URL for GitHub Actions CI runner. |
 | `DEFAULT_ANALYSIS_MODE` | Backend | `hybrid` | `hybrid` or `deterministic`. |
+| `UPLOAD_MAX_SIZE_MB` | Backend | `15` | Maximum PDF and creative image upload size (MB). |
 | `CORS_ORIGINS` | Backend | `*` | Allowed origins for CORS. |
-| `UPLOAD_MAX_SIZE_MB` | Backend | `15` | Maximum PDF upload size in megabytes. |
-| `VITE_API_BASE_URL` | Frontend | `http://localhost:8000/api` | API backend URL for frontend requests. |
+| `VITE_API_BASE_URL` | Frontend | `http://localhost:8000/api` | API backend URL for frontend client requests. |
 
 ---
 
-## 9. Implemented Features & Known Limitations
+## 8. Cloud Production Deployment
 
-### Implemented Features
-- [x] PyMuPDF PDF clause extraction with source page preservation.
-- [x] Scanned PDF detection with explicit OCR notification.
-- [x] Deterministic regex governance engine for superlatives, banned words, warranties.
-- [x] Approved Facts library with quantitative metric grounding.
-- [x] Lexical BM25 guideline clause retrieval.
-- [x] Structured Google Gemini Flash audit with Pydantic JSON validation.
-- [x] Anti-hallucination citation cross-check against database records.
-- [x] Interactive human-in-the-loop decisions (Accept, Custom Edit, Dismiss).
-- [x] Side-by-side original vs. revised live copy workbench.
-- [x] Audit trail recording all marketer actions.
-- [x] Review history with search, filtering, and PostgreSQL persistence.
-- [x] Deep navy & teal enterprise dashboard UI with responsive mobile navigation.
-- [x] 12 automated unit and integration tests passing.
+### Backend (Render)
+- **Build Command:** `pip install -r backend/requirements.txt`
+- **Start Command:** `PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables:** `DATABASE_URL` (Neon PostgreSQL), `GEMINI_API_KEY`, `CORS_ORIGINS`.
 
-### Known Limitations
-- **Optical Character Recognition (OCR):** Scanned/rasterized PDFs without searchable digital text are detected and rejected with a clear user prompt, as pure raster OCR requires large external binary dependencies (e.g. Tesseract).
-- **Secondary Provider (Groq):** Architected in configuration schema; Gemini Flash serves as primary.
+### Frontend (Vercel)
+- **Framework:** Vite
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Environment Variable:** `VITE_API_BASE_URL=https://omniguide-api.onrender.com/api`
+
+---
+
+

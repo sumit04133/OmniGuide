@@ -9,6 +9,8 @@ class ReviewCreate(BaseModel):
     content: str = Field(..., min_length=3, description="Marketing content text to review")
     campaign_context: Optional[str] = Field(None, description="Optional target audience, market, or campaign goal")
     analysis_mode: Optional[str] = Field("hybrid", description="'hybrid' (AI + deterministic) or 'deterministic'")
+    guideline_document_id: Optional[str] = Field(None, description="Optional specific guideline document ID to audit against with hierarchical inheritance")
+    policy_scope: Optional[str] = Field(None, description="Optional policy scope filter (corporate, regional, product_line)")
 
 
 class FindingDecisionUpdate(BaseModel):

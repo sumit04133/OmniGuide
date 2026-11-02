@@ -21,7 +21,20 @@ class GuidelineDocument(Base):
     filename = Column(String(255), nullable=False)
     extracted_text = Column(Text, nullable=False)
     is_demo = Column(Boolean, default=False, nullable=False)
+
+    # Hierarchical Policy Graph & Inheritance
+    policy_scope = Column(String(50), nullable=False, default="corporate")  # "corporate", "regional", "product_line"
+    parent_document_id = Column(String(36), ForeignKey("guideline_documents.id", ondelete="SET NULL"), nullable=True)
+    region_code = Column(String(50), nullable=True)  # e.g., "GLOBAL", "IN", "US", "EU"
+    product_line = Column(String(100), nullable=True)  # e.g., "Enterprise Cloud", "Platform"
+
     created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    parent_document = relationship(
+        "GuidelineDocument",
+        remote_side=[id],
+        backref="child_documents"
+    )
 
     clauses = relationship(
         "GuidelineClause",
@@ -40,6 +53,9 @@ class GuidelineClause(Base):
     clause_text = Column(Text, nullable=False)
     section_heading = Column(String(255), nullable=True)
     page_number = Column(Integer, nullable=True)
+
+    # Dense Vector Embedding for Hybrid Retrieval (cached float array serialized as JSON or pgvector)
+    embedding = Column(Text, nullable=True)
 
     document = relationship("GuidelineDocument", back_populates="clauses")
 
